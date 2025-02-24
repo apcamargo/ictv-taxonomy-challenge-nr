@@ -1,0 +1,75 @@
+[project]
+authors = [
+    "Antonio Camargo <antoniop.camargo@gmail.com>",
+    "Uri Neri <uri.neri@gmail.com>",
+    "Lander De Coninck <lander.deconinck@kuleuven.be>",
+]
+channels = ["conda-forge", "bioconda"]
+name = "ictv-taxonomy-challenge-nr"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+download-data = { cmd = [
+    "aria2c",
+    "--console-log-level=warn",
+    "--max-connection-per-server=4",
+    "--allow-overwrite",
+    "--force-sequential",
+    "https://github.com/ICTV-VBEG/ICTV-TaxonomyChallenge/raw/be6ca7a7ba5d7651babfa1ef1beef94c535271cd/dataset/dataset_challenge.tar.gz",
+    "https://github.com/apcamargo/ictv-mmseqs2-protein-database/raw/72ba6ed9a3771ae5089779f7c7dcd3a42bbe14ff/ictv_taxdump.tar.gz",
+    "https://zenodo.org/records/14889287/files/ictv_nr_db.tar.gz",
+], outputs = [
+    "dataset_challenge.tar.gz",
+    "ictv_taxdump.tar.gz",
+    "ictv_nr_db.tar.gz",
+] }
+extract-data = { cmd = [
+    "ouch",
+    "decompress",
+    "-q",
+    "-y",
+    "-A",
+    "dataset_challenge.tar.gz",
+    "ictv_taxdump.tar.gz",
+    "ictv_nr_db.tar.gz",
+], outputs = [
+    "dataset_challenge",
+    "ictv_taxdump",
+    "ictv_nr_db",
+] }
+generate-fasta = { cmd = [
+    "find",
+    "dataset_challenge",
+    "-name",
+    "\"*.fasta\"",
+    "|",
+    "xargs",
+    "cat",
+    ">",
+    "dataset_challenge.fasta",
+], outputs = [
+    "dataset_challenge.fasta",
+] }
+mmseqs2-search = { cmd = "./scripts/mmseqs2_search.sh", outputs = [
+    "mmseqs2_output",
+] }
+classify-contigs = { cmd = "scripts/classify_contigs.py", outputs = [
+    "dataset_challenge_classification.csv",
+] }
+pipeline = { depends-on = [
+    "download-data",
+    "extract-data",
+    "generate-fasta",
+    "mmseqs2-search",
+    "classify-contigs",
+] }
+
+[dependencies]
+aria2 = ">=1.37.0,<2"
+findutils = ">=4.6.0,<5"
+mmseqs2 = ">=17.b804f,<18"
+moreutils = ">=0.69,<0.70"
+ouch = ">=0.5.1,<0.6"
+python = ">=3.13.2,<3.14"
+taxopy = ">=0.14.0,<0.15"
